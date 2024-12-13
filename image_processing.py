@@ -12,7 +12,7 @@ import os
 import glob
 
 
-def create_generators(train_images):
+def create_generators(train_images, test_images):
     """Create and return the training and testing data generators."""
     train_gen = ImageDataGenerator(
         shear_range=0.2,
@@ -32,7 +32,7 @@ def create_generators(train_images):
     )
 
     testing_data = test_gen.flow_from_directory(
-        train_images,
+        test_images,
         target_size=(100, 100),
         batch_size=30,
         class_mode='categorical',

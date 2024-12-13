@@ -17,7 +17,7 @@ model = load_model('trained_model.h5')
 model.summary()
 
 # Load labels
-mapping_file_path = r"D:\Facultate\Licenta\detect_faces\ResultMap.pkl"
+mapping_file_path = r"ResultMap.pkl"
 with open(mapping_file_path, "rb") as mapping_file:
     Result_class = pickle.load(mapping_file)
 

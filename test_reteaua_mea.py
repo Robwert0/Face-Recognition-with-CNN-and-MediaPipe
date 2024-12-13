@@ -5,10 +5,12 @@ from keras._tf_keras.keras.preprocessing import image
 import numpy as np
 import matplotlib.pyplot as plt
 
-train_images = r"D:\Facultate\Licenta\detect_faces"
+train_images = r"train_images"
+test_images = r"test_images"
+
 
 # Create data generators
-training_data, testing_data = image_processing.create_generators(train_images)
+training_data, testing_data = image_processing.create_generators(train_images, test_images)
 
 # Create class mapping
 result_class = image_processing.create_class_mapping(training_data, testing_data)
