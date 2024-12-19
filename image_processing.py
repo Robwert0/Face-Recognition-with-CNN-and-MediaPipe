@@ -86,7 +86,7 @@ def create_model(output_neurons):
 def train_model(model, training_data, testing_data):
     """Train the CNN model."""
     callbacks = EarlyStopping(
-        patience=5, 
+        patience=10, 
         verbose=1, 
         min_delta=0.005
     )
@@ -104,7 +104,7 @@ def train_model(model, training_data, testing_data):
     StartTime = time.time()
     model.fit(
         training_data,
-        epochs=100,
+        epochs=50,
         validation_data=testing_data,
         callbacks= [callbacks, lr_scheduler]
     )

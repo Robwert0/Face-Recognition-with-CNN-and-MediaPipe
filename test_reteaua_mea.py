@@ -55,11 +55,11 @@ def predict_images(model, img_folder, class_mapping):
             predicted_class = max(probabilities, key=probabilities.get)
             confidence = probabilities[predicted_class]
 
-            # # Display image and result
-            # plt.imshow(image.load_img(path))
-            # plt.title(f"Prediction: {predicted_class}\nConfidence: {confidence:.2f}")
-            # plt.axis('off')
-            # plt.show()
+            # Display image and result
+            plt.imshow(image.load_img(path))
+            plt.title(f"Prediction: {predicted_class}\nConfidence: {confidence:.2f}")
+            plt.axis('off')
+            plt.show()
 
             print(f'Prediction: {predicted_class}, Confidence: {confidence:.2f}, All Probabilities: {probabilities}')
         except Exception as e:
