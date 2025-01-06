@@ -1,5 +1,10 @@
 from add_face_to_database import AddFace
 import image_processing
+import os
+
+model_save_path = r"trained_model.keras"
+train_images = r"train_images"
+test_images = r"test_images"
 
 def main():
     while True:
@@ -13,22 +18,25 @@ def main():
             print("Invalid input. Please enter 'Y' or 'N'.")
 
     # Proceed with training if at least one face was added
-    train_images = r"detect_faces"
-    training_data, testing_data = image_processing.create_generators(train_images)
+    training_data, testing_data = image_processing.create_generators(train_images, test_images)
 
     # Create class mapping
-    result_class = image_processing.create_class_mapping(training_data, testing_data)
+    result_class = image_processing.create_class_mapping(training_data)
 
     # Number of output neurons based on class mapping
     output_neurons = len(result_class)
     print("\nNumber of output neurons: ", output_neurons)
 
-    # Create the CNN model
-    model = image_processing.create_model(output_neurons)
-    model.save("trained_model.h5")
-
-    # Train the model
-    image_processing.train_model(model, training_data, testing_data)
+    # Create or Load the Model
+    if os.path.exists(model_save_path):
+        print("Loading pre-trained model...")
+        model = image_processing.load_model(model_save_path)
+    else:
+        print("Training a new model...")
+        model = image_processing.create_model(output_neurons)
+        image_processing.train_model(model, training_data, testing_data)
+        model.save(model_save_path)
+        print(f"Model saved to {model_save_path}.")
 
     import live_prediction
     # Start live prediction

@@ -1,20 +1,24 @@
 import numpy as np
 import cv2
 import mediapipe as mp
-import time
 from keras._tf_keras.keras.models import load_model
 from keras._tf_keras.keras.preprocessing import image
 import pickle
 import os
+import image_processing
+from datetime import datetime
+
+model_save_path = r"trained_model.keras"
 
 # Initialize MediaPipe Face Detection
 mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
 face_detection = mp_face_detection.FaceDetection()
 
-# Load your trained CNN model
-model = load_model('trained_model.h5')
-model.summary()
+# Load the Model
+if os.path.exists(model_save_path):
+    print("Loading pre-trained model...")
+    model = image_processing.load_model(model_save_path)
 
 # Load labels
 mapping_file_path = r"ResultMap.pkl"
@@ -25,6 +29,19 @@ with open(mapping_file_path, "rb") as mapping_file:
 labels = [Result_class[i] for i in range(len(Result_class))]
 
 font = cv2.FONT_HERSHEY_SIMPLEX
+
+logged_names = set()
+
+# Function to log presence in a text file
+def log_presence(name):
+    """Log detected person's name, date, and time to a text file."""
+    if name not in logged_names:
+        file_path = "prezenta.txt"
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(file_path, "a") as file:
+            file.write(f"{name},{current_time}\n")
+        print(f"Logged: {name} at {current_time}")
+        logged_names.add(name)
 
 def start():
     # Start video capture
@@ -59,18 +76,19 @@ def start():
                         # Extract and resize the face region
                         face = frame[y:y + h, x:x + w]
                         face_img = cv2.resize(face, (100, 100))  # Resize to match model input size
-                        cv2.imshow("Fata din cadru",face_img)
 
-                        face_img  = image.img_to_array(face_img)
-                        face_img = np.expand_dims(face_img, axis= 0)
+                        face_img = image.img_to_array(face_img)
+                        face_img = np.expand_dims(face_img, axis=0)
 
                         # Make prediction
-                        result = model.predict(face_img, verbose = 0)
-                        prediction = Result_class[np.argmax(result)]
+                        result = model.predict(face_img, verbose=0)
+                        max_index = np.argmax(result)
+                        prediction = Result_class[max_index]
+                        confidence = result[0][max_index] * 100  # Convert to percentage
 
-                        # Display prediction on the frame
-                        cv2.putText(frame, prediction, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-
+                        # Display prediction and confidence on the frame
+                        text = f"{prediction}: {confidence:.2f}%"
+                        cv2.putText(frame, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
                     except Exception as e:
                         print(f"Error processing face {idx + 1}: {e}")
@@ -85,4 +103,5 @@ def start():
     cap.release()
     cv2.destroyAllWindows()
 
-
+# Start the application
+start()

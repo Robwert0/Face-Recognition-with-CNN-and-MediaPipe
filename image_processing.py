@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras._tf_keras.keras.preprocessing.image import ImageDataGenerator
 from keras._tf_keras.keras.models import Sequential
-from keras._tf_keras.keras.layers import Conv2D, MaxPool2D, Flatten, Dense, BatchNormalization, Dropout, GlobalAveragePooling2D
+from keras._tf_keras.keras.layers import Dense, Dropout, GlobalAveragePooling2D
 from keras._tf_keras.keras.applications import MobileNetV2
 from keras._tf_keras.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras._tf_keras.keras.regularizers import l2
@@ -83,7 +83,7 @@ def train_model(model, training_data, testing_data):
     StartTime = time.time()
     model.fit(
         training_data,
-        epochs=50,
+        epochs=100,
         validation_data=testing_data,
         callbacks=callbacks
     )
