@@ -46,7 +46,7 @@ def create_class_mapping(training_data):
     Train_class = training_data.class_indices
     Result_class = {value_tag: face_tag for face_tag, value_tag in Train_class.items()}
 
-    with open(r"detect_faces/ResultMap.pkl", "wb") as Final_mapping:
+    with open(r"ResultMap.pkl", "wb") as Final_mapping:
         pickle.dump(Result_class, Final_mapping)
 
     print("Mapping of face and its numerical value", Result_class)

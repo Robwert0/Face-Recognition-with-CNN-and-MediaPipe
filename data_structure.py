@@ -6,25 +6,20 @@ import random
 main_folder = 'detect_faces'
 
 # Subfolders for each class
-classes = ['Mirea_Robert', 'Gavrila_Razvan']
+classes = [d for d in os.listdir(main_folder) if os.path.isdir(os.path.join(main_folder, d))]
 
 # Directory to store the new train/test folders
 train_dir = 'train_images'
 test_dir = 'test_images'
 
 # Create the train and test directories if they don't exist
-if not os.path.exists(train_dir):
-    os.makedirs(train_dir)
-
-if not os.path.exists(test_dir):
-    os.makedirs(test_dir)
+os.makedirs(train_dir, exist_ok=True)
+os.makedirs(test_dir, exist_ok=True)
 
 # Create subfolders for each class inside train_images and test_images
 for class_name in classes:
-    if not os.path.exists(os.path.join(train_dir, class_name)):
-        os.makedirs(os.path.join(train_dir, class_name))
-    if not os.path.exists(os.path.join(test_dir, class_name)):
-        os.makedirs(os.path.join(test_dir, class_name))
+    os.makedirs(os.path.join(train_dir, class_name), exist_ok=True)
+    os.makedirs(os.path.join(test_dir, class_name), exist_ok=True)
 
 # Function to move images into train and test directories
 def move_images(class_name, source_folder, train_folder, test_folder, split_ratio=0.8):
