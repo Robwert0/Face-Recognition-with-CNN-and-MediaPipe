@@ -1,4 +1,5 @@
 📸 Real-Time Face Recognition with CNN and MediaPipe
+
 This project implements a complete, real-time face recognition system using Python. It leverages the high-performance MediaPipe library for initial face detection and a custom-trained Convolutional Neural Network (CNN) built with TensorFlow/Keras for the actual recognition task.
 
 The entire workflow—from collecting face data to training the model and running the final recognition—is managed through a single, easy-to-use command-line interface.
@@ -64,17 +65,28 @@ NumPy: For numerical operations on image data.
 Scikit-learn: For splitting the dataset into training and testing sets.
 
 📂 Project Structure
+
 .
 ├── Data/
+
 │   ├── Person_A/
+
 │   │   ├── Person_A_0.jpg
+
 │   │   └── ...
+
 │   └── Person_B/
+
 │       ├── Person_B_0.jpg
+
 │       └── ...
+
 ├── main.py
+
 ├── face_recognition_model.h5  (Generated after training)
+
 ├── labels.npy                 (Generated after training)
+
 └── README.md
 
 🚀 Setup and Installation
