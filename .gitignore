@@ -8,3 +8,5 @@ test_reteaua_mea.py
 trained_model.h5
 to_do.txt
 .vscode
+postgresql\database.ini
+prezenta.txt

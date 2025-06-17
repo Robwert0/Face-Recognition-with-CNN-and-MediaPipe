@@ -19,27 +19,38 @@ def create_generators(train_images, test_images):
         brightness_range=(0.8, 1.2),
         width_shift_range=0.2,
         height_shift_range=0.2,
-        rescale=1./255
+        rescale=1./255, 
+        validation_split=0.2
     )
 
     test_gen = ImageDataGenerator(rescale=1./255)
 
     training_data = train_gen.flow_from_directory(
-        train_images, 
-        target_size=(100, 100),
+        train_images,
+        target_size=(224, 224),
         batch_size=32,
         class_mode='categorical',
-        shuffle=True
+        shuffle=True,
+        subset='training'  # Use this subset for training
     )
 
     testing_data = test_gen.flow_from_directory(
         test_images,
-        target_size=(100, 100),
+        target_size=(224, 224),
         batch_size=32,
-        class_mode='categorical',
+        class_mode='categorical'
     )
 
-    return training_data, testing_data
+    validation_data = train_gen.flow_from_directory(
+        train_images,
+        target_size=(224, 224),
+        batch_size=32,
+        class_mode='categorical',
+        shuffle=True,
+        subset="validation"
+    )
+
+    return training_data, testing_data, validation_data
 
 def create_class_mapping(training_data):
     """Create the mapping between numeric labels and class names."""
@@ -54,13 +65,19 @@ def create_class_mapping(training_data):
 
 def create_model(output_neurons):
     """Create and compile a model using MobileNetV2 as the base."""
-    base_model = MobileNetV2(input_shape=(100, 100, 3), include_top=False, weights='imagenet')
+    base_model = MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights='imagenet')
     base_model.trainable = False 
 
     model = Sequential([
         base_model,
         GlobalAveragePooling2D(),
+        Dense(256, activation='relu', kernel_regularizer=l2(0.01)),
+        Dropout(0.5),
         Dense(128, activation='relu', kernel_regularizer=l2(0.01)),
+        Dropout(0.5),
+        Dense(64, activation='relu', kernel_regularizer=l2(0.01)),
+        Dropout(0.5),
+        Dense(32, activation='relu', kernel_regularizer=l2(0.01)),
         Dropout(0.5),
         Dense(output_neurons, activation='softmax')
     ])
@@ -71,9 +88,9 @@ def create_model(output_neurons):
         metrics=['accuracy']
     )
 
-    return model
+    return model, base_model
 
-def train_model(model, training_data, testing_data):
+def train_model(model, training_data, validation_data):
     """Train the model."""
     callbacks = [
         EarlyStopping(patience=5, verbose=1, restore_best_weights=True),
@@ -84,12 +101,35 @@ def train_model(model, training_data, testing_data):
     model.fit(
         training_data,
         epochs=100,
-        validation_data=testing_data,
+        validation_data=validation_data,
         callbacks=callbacks
     )
     EndTime = time.time()
 
     print('Total Training Time taken: ', round((EndTime - StartTime) / 60), 'Minutes')
+
+def fine_tune_model(model, base_model, training_data, validation_data, fine_tune_at=100):
+    base_model.trainable = True
+    for layer in base_model.layers[:fine_tune_at]:
+        layer.trainable = False
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    callbacks = [
+        EarlyStopping(patience=5, verbose=1, restore_best_weights=True),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=2, min_lr=1e-6, verbose=1)
+    ]
+
+    model.fit(
+        training_data,
+        epochs=30,
+        validation_data=validation_data,
+        callbacks=callbacks
+    )
 
 def load_model(model_path):
     """Load a saved model from a file."""

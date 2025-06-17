@@ -4,24 +4,20 @@ import os
 from datetime import datetime
 import time 
 
- # Thresholds for regions in the bounding box
+# Thresholds for regions in the bounding box
 EDGE_THRESHOLD_LEFT_RIGHT = 0.15  # Threshold for left/right edges
 CENTER_THRESHOLD = 0.2            # Threshold for the center region
+CLOSE_FACE_AREA_THRESHOLD = 65000  # Threshold for face proximity based on bounding box area
 
 # Counters to track saved frames for each region
 save_counts = {
     "center": 0,
-    "left": 0,
-    "right": 0,
-    "up": 0,
-    "down": 0
 }
-
 
 class AddFace:
     def __init__(self, max_faces_region, parent_folder='detect_faces', confidence_threshold=0.5):
         self.parent_folder = parent_folder
-        self.max_faces = max_faces_region * 3
+        self.max_faces = max_faces_region
         self.confidence_threshold = confidence_threshold
         self.frame_count = 0
         self.saved_faces = []
@@ -38,6 +34,18 @@ class AddFace:
         os.makedirs(save_folder, exist_ok=True)
         print(f"Saving images to folder: {save_folder}")
         return save_folder
+    
+    def is_blurry(self, image, threshold=140.0):
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+        print(f"Laplacian variance: {laplacian_var}")
+        return laplacian_var < threshold
+    
+    def is_well_lit(self, image, brightness_threshold=(100, 220)):
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        mean_brightness = gray.mean()
+        print(f"Mean brightness: {mean_brightness}")
+        return brightness_threshold[0] < mean_brightness < brightness_threshold[1]
 
     def process_frame(self, img):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -46,41 +54,48 @@ class AddFace:
 
         if results.detections:
             for detection in results.detections:
-                # Get bounding box and nose keypoint
                 bbox = detection.location_data.relative_bounding_box
                 keypoints = detection.location_data.relative_keypoints
                 nose_point = keypoints[0]  # Nose is the first keypoint
 
-                # Bounding box dimensions
                 h, w, _ = img.shape
                 xmin, ymin = int(bbox.xmin * w), int(bbox.ymin * h)
                 bbox_width = int(bbox.width * w)
                 bbox_height = int(bbox.height * h)
 
-                # Calculate relative nose position
+                # Calculate the area of the bounding box
+                bbox_area = bbox_width * bbox_height
+
                 relative_x = (nose_point.x - bbox.xmin) / bbox.width
                 relative_y = (nose_point.y - bbox.ymin) / bbox.height
-                
-                # Check if nose is in specific regions
-                frame_name = None
-                if (CENTER_THRESHOLD < relative_x < 1 - CENTER_THRESHOLD and
-                        CENTER_THRESHOLD < relative_y < 1 - CENTER_THRESHOLD and
-                        save_counts["center"] < self.max_faces_region):
-                    frame_name = f"center_{save_counts['center']}.jpg"
-                    save_counts["center"] += 1
-                elif relative_x < EDGE_THRESHOLD_LEFT_RIGHT and save_counts["left"] < self.max_faces_region:
-                    frame_name = f"left_{save_counts['left']}.jpg"
-                    save_counts["left"] += 1
-                elif relative_x > 0.7 - EDGE_THRESHOLD_LEFT_RIGHT and save_counts["right"] < self.max_faces_region:
-                    frame_name = f"right_{save_counts['right']}.jpg"
-                    save_counts["right"] += 1
 
-            # Save the frame if a condition is satisfied
-            if frame_name:
-                cropped_face = img_bgr[ymin:ymin+bbox_height, xmin:xmin+bbox_width]
-                face_path = os.path.join(self.save_folder, frame_name)
-                cv2.imwrite(face_path, cropped_face)
-                print(f"Frame saved: {frame_name}")
+                print(bbox_area)
+                # Check if the face is close based on the bounding box area
+                if bbox_area > CLOSE_FACE_AREA_THRESHOLD:
+                    cv2.putText(img_bgr, "Face is close", (xmin, ymin - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                    
+
+                    if (CENTER_THRESHOLD < relative_x < 1 - CENTER_THRESHOLD and
+                            CENTER_THRESHOLD < relative_y < 1 - CENTER_THRESHOLD and
+                            save_counts["center"] < self.max_faces_region):
+                        print("Center region detected")
+                        frame_name = f"center_{save_counts['center']}.jpg"
+                        save_counts["center"] += 1
+
+                        cropped_face = img_bgr[ymin:ymin + bbox_height, xmin:xmin + bbox_width]
+
+                        print(self.is_blurry(cropped_face), self.is_well_lit(cropped_face))
+                        if not self.is_blurry(cropped_face) and self.is_well_lit(cropped_face):
+                            face_path = os.path.join(self.save_folder, frame_name)
+                            cv2.imwrite(face_path, cropped_face)
+                            print(f"Frame saved: {frame_name}")
+                        else:
+                            print("Skipped blurry frame.")
+
+                else:
+                    cv2.putText(img_bgr, "Face is to far away", (xmin, ymin - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
 
         return img_bgr
 
@@ -95,6 +110,8 @@ class AddFace:
             img_processed = self.process_frame(img)
 
             # Stop if max faces saved
+            print(f"Faces saved in folder: {len(os.listdir(self.save_folder))}")
+            print(f"Max faces allowed: {self.max_faces}")
             if len(os.listdir(self.save_folder)) >= self.max_faces:
                 print(f"Folder '{self.save_folder}' contains more than {self.max_faces} face images. Exiting...")
                 break
@@ -106,5 +123,4 @@ class AddFace:
 
         webcam.release()
         cv2.destroyAllWindows()
-
 
